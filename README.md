@@ -1,5 +1,7 @@
 # SDialog Web Demo
 
+⚠️ This demonstration is an early version and is still under development ⚠️
+
 This is a web-based demonstration of the `sdialog` library, providing an interactive interface to explore its features for synthetic dialogue generation.
 
 ![SDialog Web Demo GUI](github_statics/gui.png)
