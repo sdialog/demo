@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sdialog Web Interface</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body class="bg-gray-900 text-white font-sans">
+    <!-- Header -->
+    <header class="bg-gray-800 p-4 shadow-md flex justify-between items-center">
+        <h1 class="text-2xl font-bold">Sdialog Web Interface</h1>
+        <button id="settings-btn" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+            Settings
+        </button>
+    </header>
+
+    <div id="test-message" class="text-center p-2 bg-gray-700"></div>
+
+    <!-- Main Content -->
+    <main class="p-8">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+
+            <!-- Step 1: Persona -->
+            <div id="step-1" class="step-card bg-gray-800 p-6 rounded-lg shadow-lg">
+                <h2 class="text-xl font-semibold mb-4 border-b border-gray-700 pb-2">1. Persona Management</h2>
+                
+                <!-- Create Persona Form -->
+                <div class="mb-6">
+                    <h3 class="font-semibold mb-2">Create a New Persona</h3>
+                    <form id="create-persona-form" class="space-y-4">
+                        <input type="text" id="name" name="name" placeholder="Name" required class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <input type="text" id="age" name="age" placeholder="Age" class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <input type="text" id="gender" name="gender" placeholder="Gender" class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <textarea id="background" name="background" placeholder="Background" class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 h-24"></textarea>
+                        <button type="submit" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded">Create Persona</button>
+                    </form>
+                </div>
+
+                <!-- Generate Personas -->
+                <div id="generate-personas-section" class="mb-6">
+                    <h3 class="font-semibold mb-2">Or Generate Speakers</h3>
+                    <button id="generate-speakers-btn" class="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded">Generate Speakers (speaker 1 & speaker 2)</button>
+                </div>
+                
+                <!-- Personas List -->
+                <div>
+                    <h3 class="font-semibold mb-2">Available Personas</h3>
+                    <div id="personas-list" class="space-y-4 max-h-96 overflow-y-auto"></div>
+                </div>
+            </div>
+
+            <!-- Step 2: Voice Attribution -->
+            <div id="step-2" class="step-card bg-gray-800 p-6 rounded-lg shadow-lg">
+                <h2 class="text-xl font-semibold mb-4 border-b border-gray-700 pb-2">2. Voice Attribution</h2>
+                
+                <div id="voice-assignment-section" class="mb-6">
+                    <button id="auto-assign-voices-btn" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded mb-4">Auto-assign Voices</button>
+                    <h3 class="font-semibold mb-2">Persona-Voice Assignments</h3>
+                    <div id="persona-voice-assignments" class="p-4 bg-gray-700 rounded"></div>
+                </div>
+                
+                <h3 class="collapsible collapsed font-semibold mb-2 cursor-pointer">Available Voices</h3>
+                <div class="collapsible-content collapsed max-h-96 overflow-y-auto">
+                    <div id="voices-list"></div>
+                </div>
+            </div>
+
+            <!-- Step 3: Dialog Generation -->
+            <div id="step-3" class="step-card bg-gray-800 p-6 rounded-lg shadow-lg">
+                <h2 class="text-xl font-semibold mb-4 border-b border-gray-700 pb-2">3. Dialog Generation</h2>
+                
+                <form id="create-dialog-form" class="space-y-4 mb-6">
+                    <select id="persona1" name="persona1" required class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2"></select>
+                    <select id="persona2" name="persona2" required class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2"></select>
+                    
+                    <h3 class="font-semibold pt-2">Context</h3>
+                    <input type="text" id="location" name="location" placeholder="Location" class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2">
+                    <input type="text" id="topics" name="topics" placeholder="Topics (comma-separated)" class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2">
+                    <input type="number" id="max_turns" name="max_turns" value="10" class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2">
+                    
+                    <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">Generate Dialog</button>
+                </form>
+
+                <h3 class="font-semibold mb-2">Generated Dialog</h3>
+                <div id="dialog-display" class="p-4 bg-gray-700 rounded max-h-96 overflow-y-auto"></div>
+            </div>
+
+            <!-- Step 4: Room Generation -->
+            <div id="step-4" class="step-card bg-gray-800 p-6 rounded-lg shadow-lg">
+                <h2 class="text-xl font-semibold mb-4 border-b border-gray-700 pb-2">4. Room Generation</h2>
+                
+                <form id="create-room-form" class="space-y-4 mb-6">
+                     <input type="text" id="room-name" name="name" placeholder="Room Name" class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2">
+                     <div class="grid grid-cols-3 gap-4">
+                        <input type="number" id="room-width" name="width" value="5" step="0.1" placeholder="Width" class="bg-gray-700 border border-gray-600 rounded px-3 py-2">
+                        <input type="number" id="room-length" name="length" value="4" step="0.1" placeholder="Length" class="bg-gray-700 border border-gray-600 rounded px-3 py-2">
+                        <input type="number" id="room-height" name="height" value="3" step="0.1" placeholder="Height" class="bg-gray-700 border border-gray-600 rounded px-3 py-2">
+                     </div>
+                     <button type="submit" class="w-full bg-teal-600 hover:bg-teal-700 text-white font-bold py-2 px-4 rounded">Create Room</button>
+                </form>
+                
+                <h3 class="collapsible collapsed font-semibold mb-2 cursor-pointer">Available Rooms</h3>
+                <div class="collapsible-content collapsed max-h-96 overflow-y-auto">
+                    <div id="rooms-list"></div>
+                </div>
+            </div>
+
+            <!-- Step 5: Audio Generation -->
+            <div id="step-5" class="step-card bg-gray-800 p-6 rounded-lg shadow-lg">
+                <h2 class="text-xl font-semibold mb-4 border-b border-gray-700 pb-2">5. Audio Generation</h2>
+                <div id="audio-controls" class="space-y-4">
+                    <select id="audio-room" name="audio-room" class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2"></select>
+                    <button id="generate-audio" class="w-full bg-orange-600 hover:bg-orange-700 text-white font-bold py-2 px-4 rounded">Generate Audio</button>
+                </div>
+            </div>
+
+            <!-- Step 6: Listen -->
+            <div id="step-6" class="step-card bg-gray-800 p-6 rounded-lg shadow-lg">
+                <h2 class="text-xl font-semibold mb-4 border-b border-gray-700 pb-2">6. Listen to Audio</h2>
+                <div id="audio-player" class="space-y-4"></div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Settings Modal -->
+    <div id="settings-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+        <div class="bg-gray-800 p-8 rounded-lg shadow-2xl w-full max-w-md">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-2xl font-bold">Settings</h2>
+                <button id="close-modal-btn" class="text-gray-400 hover:text-white">&times;</button>
+            </div>
+            
+            <div id="llm-config" class="space-y-4">
+                <h3 class="text-lg font-semibold">LLM Configuration</h3>
+                <div>
+                    <label for="llm-provider" class="block mb-2 text-sm font-medium">Provider:</label>
+                    <select id="llm-provider" name="provider" class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2">
+                        <option value="ollama" selected>Ollama</option>
+                        <option value="huggingface">HuggingFace</option>
+                        <option value="openai">OpenAI</option>
+                        <option value="amazon">Amazon Bedrock</option>
+                        <option value="google">Google</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="llm-model-name" class="block mb-2 text-sm font-medium">Model Name:</label>
+                    <input type="text" id="llm-model-name" name="model_name" value="llama2" class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2">
+                </div>
+                
+                <div id="bedrock-options" style="display: none;" class="space-y-4 p-4 border border-gray-700 rounded">
+                    <h4 class="font-semibold">Amazon Bedrock Options</h4>
+                    <div>
+                        <label for="aws-region" class="block mb-2 text-sm font-medium">AWS Region:</label>
+                        <input type="text" id="aws-region" name="region_name" value="us-east-1" class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2">
+                    </div>
+                    <div>
+                        <label for="aws-bearer-token" class="block mb-2 text-sm font-medium">AWS Bearer Token:</label>
+                        <input type="text" id="aws-bearer-token" name="aws_bearer_token" class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+</body>
+</html>
