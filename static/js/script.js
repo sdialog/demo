@@ -1,9 +1,4 @@
 document.addEventListener('DOMContentLoaded', () => {
-    fetch('/api/test')
-        .then(response => response.json())
-        .then(data => {
-            document.getElementById('test-message').textContent = data.message;
-        });
 
     // Modal elements
     const settingsBtn = document.getElementById('settings-btn');
@@ -152,6 +147,12 @@ document.addEventListener('DOMContentLoaded', () => {
             .then(rooms => {
                 roomsList.innerHTML = '';
                 audioRoomSelect.innerHTML = '<option value="">Select a room</option>';
+                
+                const availableRoomsHeader = document.getElementById('available-rooms-header');
+                if (availableRoomsHeader) {
+                    availableRoomsHeader.textContent = `Available Rooms (${rooms.length})`;
+                }
+
                 if (rooms.length === 0) {
                     roomsList.innerHTML = '<p class="text-gray-400">No rooms created yet.</p>';
                     return;
@@ -159,14 +160,43 @@ document.addEventListener('DOMContentLoaded', () => {
                 rooms.forEach(room => {
                     const roomDiv = document.createElement('div');
                     roomDiv.className = 'bg-gray-700 p-4 rounded-md mb-4';
-                    roomDiv.innerHTML = `
-                        <h4 class="font-bold">${room.name}</h4>
+
+                    const roomHeader = document.createElement('h4');
+                    roomHeader.className = 'font-bold cursor-pointer flex justify-between items-center';
+                    roomHeader.innerHTML = `
+                        <span>${room.name}</span>
+                        <button class="delete-room-btn text-red-500 hover:text-red-700 text-xs" data-id="${room.id}">Delete</button>
+                    `;
+
+                    const roomContent = document.createElement('div');
+                    roomContent.className = 'collapsible-content'; // Initially expanded
+                    roomContent.innerHTML = `
                         <img src="/api/rooms/${room.id}/image" alt="Room layout for ${room.name}" class="my-2 rounded-md">
                         <details class="mt-2 text-xs">
                             <summary class="cursor-pointer">Details</summary>
                             <pre class="mt-2 p-2 bg-gray-800 rounded text-gray-300 text-xs">${JSON.stringify(room, null, 2)}</pre>
                         </details>
                     `;
+
+                    roomHeader.querySelector('.delete-room-btn').addEventListener('click', (e) => {
+                        e.stopPropagation(); // Prevent the collapse toggle
+                        const roomId = e.target.getAttribute('data-id');
+                        if (confirm(`Are you sure you want to delete room "${room.name}"?`)) {
+                            fetch(`/api/rooms/${roomId}`, { method: 'DELETE' })
+                                .then(response => {
+                                    if (!response.ok) throw new Error('Failed to delete room');
+                                    fetchRooms(); // Refresh the list
+                                })
+                                .catch(error => alert(`Error: ${error.message}`));
+                        }
+                    });
+
+                    roomHeader.querySelector('span').addEventListener('click', () => {
+                        roomContent.classList.toggle('collapsed');
+                    });
+
+                    roomDiv.appendChild(roomHeader);
+                    roomDiv.appendChild(roomContent);
                     roomsList.appendChild(roomDiv);
 
                     const option = document.createElement('option');

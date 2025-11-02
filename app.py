@@ -150,11 +150,6 @@ def index():
     return render_template('index.html')
 
 
-@app.route('/api/test')
-def test_endpoint():
-    return jsonify({'message': 'Hello from Flask!'})
-
-
 @app.route('/api/personas', methods=['GET'])
 def get_personas():
     return jsonify([p.model_dump() for p in personas])
@@ -210,10 +205,10 @@ def generate_personas():
 
         # Remove existing speaker 1 and speaker 2
         global personas
-        personas = [p for p in personas if p.name not in ["speaker 1", "speaker 2"]]
+        # personas = [p for p in personas if p.name not in ["speaker 1", "speaker 2"]]
 
-        new_personas[0].name = "speaker 1"
-        new_personas[1].name = "speaker 2"
+        # new_personas[0].name = "speaker 1"
+        # new_personas[1].name = "speaker 2"
 
         # Add the new personas
         personas.extend(new_personas)
@@ -421,6 +416,17 @@ def get_room_image(room_id):
         # This can happen if fonts are not available on the system for PIL
         print(f"Error generating room image: {e}")
         return jsonify({'error': 'Could not generate room image'}), 500
+
+
+@app.route('/api/rooms/<string:room_id>', methods=['DELETE'])
+def delete_room(room_id):
+    global rooms
+    room_to_delete = next((r for r in rooms if r.id == room_id), None)
+    if not room_to_delete:
+        return jsonify({'error': 'Room not found'}), 404
+
+    rooms = [r for r in rooms if r.id != room_id]
+    return jsonify({'message': 'Room deleted successfully'}), 200
 
 
 @app.route('/api/dialogs/<string:dialog_id>/generate-audio', methods=['POST'])
