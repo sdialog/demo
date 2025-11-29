@@ -17,7 +17,7 @@ from sdialog.audio.pipeline import to_audio  # noqa: E402
 from sdialog.audio.tts import KokoroTTS
 from sdialog.audio.voice_database import HuggingfaceVoiceDatabase  # noqa: E402
 from sdialog.generators.base import BaseAttributeModelGenerator
-from sdialog.audio.utils import Role  # noqa: E402
+from sdialog.audio.utils import Role, Furniture, RGBAColor  # noqa: E402
 from sdialog.audio.room_generator import BasicRoomGenerator
 from sdialog.audio.jsalt import MedicalRoomGenerator
 
@@ -374,7 +374,32 @@ def get_persona_voices():
 def create_room():
     data = request.json
     generator_type = data.get('generator_type', 'custom')
-    name = data.get('name', f"Room_{len(rooms)+1}")
+    name = data.get('name')
+
+    # Generate a name if not provided by the user
+    if not name or not name.strip():
+        if generator_type == 'custom':
+            width = float(data.get('width', 5))
+            length = float(data.get('length', 4))
+            height = float(data.get('height', 3))
+            name = f"Custom ({width}x{length}x{height})"
+        elif generator_type == 'basic':
+            room_size = float(data.get('room_size', 20))
+            name = f"Basic ({room_size}m²)"
+        elif generator_type == 'medical':
+            room_type = data.get('room_type', 'random')
+            # Capitalize and replace underscores for display
+            room_type_str = room_type.replace('_', ' ').title()
+            name = f"Medical ({room_type_str})"
+
+        # Handle potential name collisions by adding a suffix
+        existing_names = {r.name for r in rooms}
+        if name in existing_names:
+            base_name = name
+            counter = 2
+            while name in existing_names:
+                name = f"{base_name} #{counter}"
+                counter += 1
 
     room = None
 
@@ -423,7 +448,43 @@ def create_room():
 
 @app.route('/api/rooms', methods=['GET'])
 def get_rooms():
-    return jsonify([r.model_dump(mode='json') for r in rooms])
+    return jsonify([r.model_dump(mode='json') for r in reversed(rooms)])
+
+
+@app.route('/api/rooms/<string:room_id>/furniture', methods=['POST'])
+def add_furniture_to_room(room_id):
+    room_obj = next((r for r in rooms if r.id == room_id), None)
+    if not room_obj:
+        return jsonify({'error': 'Room not found'}), 404
+
+    data = request.json
+    furniture_name = data.get('name')
+    if not furniture_name or not furniture_name.strip():
+        return jsonify({'error': 'Furniture name is required'}), 400
+
+    # Ensure furnitures dict exists
+    if room_obj.furnitures is None:
+        room_obj.furnitures = {}
+
+    if furniture_name in room_obj.furnitures:
+        return jsonify({'error': f"A furniture with the name '{furniture_name}' already exists in this room."}), 400
+
+    try:
+        new_furniture = Furniture(
+            name=furniture_name,
+            x=float(data.get('x', 0)),
+            y=float(data.get('y', 0)),
+            z=float(data.get('z', 0)),
+            width=float(data.get('width', 1)),
+            height=float(data.get('height', 1)),
+            depth=float(data.get('depth', 1)),
+            color=RGBAColor[data.get('color', 'RED').upper()]
+        )
+        room_obj.furnitures[furniture_name] = new_furniture
+    except (ValueError, KeyError) as e:
+        return jsonify({'error': f'Invalid furniture data: {e}'}), 400
+
+    return jsonify(room_obj.model_dump(mode='json')), 200
 
 
 @app.route('/api/rooms/<string:room_id>/image')
@@ -433,7 +494,9 @@ def get_room_image(room_id):
         return jsonify({'error': 'Room not found'}), 404
 
     try:
-        img = room_obj.to_image()
+        width = request.args.get('width', default=512, type=int)
+        height = request.args.get('height', default=512, type=int)
+        img = room_obj.to_image(width=width, height=height)
         img_io = io.BytesIO()
         img.save(img_io, 'PNG')
         img_io.seek(0)

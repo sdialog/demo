@@ -62,6 +62,75 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    // --- Furniture Modal Logic ---
+    const addFurnitureModal = document.getElementById('add-furniture-modal');
+    const closeFurnitureModalBtn = document.getElementById('close-furniture-modal-btn');
+    const addFurnitureForm = document.getElementById('add-furniture-form');
+    const furnitureModalRoomName = document.getElementById('furniture-modal-room-name');
+    const furnitureRoomIdInput = document.getElementById('furniture-room-id');
+
+    const openFurnitureModal = (roomId, roomName) => {
+        furnitureModalRoomName.textContent = roomName;
+        furnitureRoomIdInput.value = roomId;
+        addFurnitureForm.reset();
+        addFurnitureModal.classList.remove('hidden');
+    };
+
+    const closeFurnitureModal = () => {
+        addFurnitureModal.classList.add('hidden');
+    };
+
+    closeFurnitureModalBtn.addEventListener('click', closeFurnitureModal);
+    addFurnitureModal.addEventListener('click', (event) => {
+        if (event.target === addFurnitureModal) {
+            closeFurnitureModal();
+        }
+    });
+
+    addFurnitureForm.addEventListener('submit', (event) => {
+        event.preventDefault();
+        const formData = new FormData(addFurnitureForm);
+        const data = Object.fromEntries(formData.entries());
+        const roomId = data.room_id;
+
+        fetch(`/api/rooms/${roomId}/furniture`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data),
+        })
+        .then(response => {
+            if (!response.ok) return response.json().then(err => { throw new Error(err.error) });
+            return response.json();
+        })
+        .then(() => {
+            closeFurnitureModal();
+            fetchRooms(); // Refresh the list to show the new furniture
+        })
+        .catch(error => alert(`Error adding furniture: ${error.message}`));
+    });
+
+    // --- Room Image Modal Logic ---
+    const roomImageModal = document.getElementById('room-image-modal');
+    const zoomedRoomImage = document.getElementById('zoomed-room-image');
+    const closeRoomImageModalBtn = document.getElementById('close-room-image-modal-btn');
+
+    const openRoomImageModal = (imageUrl) => {
+        zoomedRoomImage.src = imageUrl;
+        roomImageModal.classList.remove('hidden');
+    };
+
+    const closeRoomImageModal = () => {
+        roomImageModal.classList.add('hidden');
+        zoomedRoomImage.src = ''; // Clear src to stop loading
+    };
+
+    closeRoomImageModalBtn.addEventListener('click', closeRoomImageModal);
+    roomImageModal.addEventListener('click', (event) => {
+        if (event.target === roomImageModal) {
+            closeRoomImageModal();
+        }
+    });
+
     // --- LLM Config Logic ---
     const saveLlmConfig = () => {
         const config = {
@@ -181,24 +250,39 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
                 rooms.forEach(room => {
                     const roomDiv = document.createElement('div');
-                    roomDiv.className = 'bg-gray-700 p-4 rounded-md mb-4';
+                    roomDiv.className = 'bg-gray-700 p-4 rounded-md';
 
                     const roomHeader = document.createElement('h4');
                     roomHeader.className = 'font-bold cursor-pointer flex justify-between items-center';
                     roomHeader.innerHTML = `
                         <span>${room.name}</span>
-                        <button class="delete-room-btn text-red-500 hover:text-red-700 text-xs" data-id="${room.id}">Delete</button>
+                        <div>
+                            <button class="add-furniture-btn text-blue-400 hover:text-blue-600 text-xs mr-2" data-id="${room.id}" data-name="${room.name}">+ Furniture</button>
+                            <button class="delete-room-btn text-red-500 hover:text-red-700 text-xs" data-id="${room.id}">Delete</button>
+                        </div>
                     `;
 
                     const roomContent = document.createElement('div');
                     roomContent.className = 'collapsible-content'; // Initially expanded
                     roomContent.innerHTML = `
-                        <img src="/api/rooms/${room.id}/image" alt="Room layout for ${room.name}" class="my-2 rounded-md">
+                        <img src="/api/rooms/${room.id}/image" alt="Room layout for ${room.name}" class="my-2 rounded-md cursor-zoom-in">
                         <details class="mt-2 text-xs">
                             <summary class="cursor-pointer">Details</summary>
                             <pre class="mt-2 p-2 bg-gray-800 rounded text-gray-300 text-xs">${JSON.stringify(room, null, 2)}</pre>
                         </details>
                     `;
+
+                    roomContent.querySelector('img').addEventListener('click', (e) => {
+                        const highResUrl = `${e.target.src}?width=1024&height=1024`;
+                        openRoomImageModal(highResUrl);
+                    });
+
+                    roomHeader.querySelector('.add-furniture-btn').addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        const roomId = e.target.getAttribute('data-id');
+                        const roomName = e.target.getAttribute('data-name');
+                        openFurnitureModal(roomId, roomName);
+                    });
 
                     roomHeader.querySelector('.delete-room-btn').addEventListener('click', (e) => {
                         e.stopPropagation(); // Prevent the collapse toggle

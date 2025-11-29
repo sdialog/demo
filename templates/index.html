@@ -137,11 +137,6 @@
 
                     <button type="submit" class="w-full bg-teal-600 hover:bg-teal-700 text-white font-bold py-2 px-4 rounded">Create Room</button>
                 </form>
-                
-                <h3 id="available-rooms-header" class="collapsible font-semibold mb-2 cursor-pointer">Available Rooms</h3>
-                <div class="collapsible-content max-h-96 overflow-y-auto">
-                    <div id="rooms-list"></div>
-                </div>
             </div>
 
             <!-- Step 5: Audio Generation -->
@@ -159,7 +154,66 @@
                 <div id="audio-player" class="space-y-4"></div>
             </div>
         </div>
+
+        <!-- Available Rooms Section -->
+        <div class="mt-8">
+            <h3 id="available-rooms-header" class="text-xl font-semibold mb-4">Available Rooms</h3>
+            <div class="max-h-[50vh] overflow-y-auto pr-4"> <!-- pr-4 to avoid scrollbar overlap -->
+                <div id="rooms-list" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-4">
+                </div>
+            </div>
+        </div>
     </main>
+
+    <!-- Room Image Modal -->
+    <div id="room-image-modal" class="hidden fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center p-4">
+        <div class="relative">
+            <button id="close-room-image-modal-btn" class="absolute -top-4 -right-4 text-white text-3xl font-bold bg-gray-800 rounded-full w-10 h-10 flex items-center justify-center">&times;</button>
+            <img id="zoomed-room-image" src="" alt="Zoomed room layout" class="max-w-full max-h-[90vh] rounded-lg">
+        </div>
+    </div>
+
+    <!-- Add Furniture Modal -->
+    <div id="add-furniture-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+        <div class="bg-gray-800 p-8 rounded-lg shadow-2xl w-full max-w-lg">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-2xl font-bold">Add Furniture to <span id="furniture-modal-room-name"></span></h2>
+                <button id="close-furniture-modal-btn" class="text-gray-400 hover:text-white">&times;</button>
+            </div>
+            <form id="add-furniture-form" class="space-y-4">
+                <input type="hidden" id="furniture-room-id" name="room_id">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <input type="text" name="name" placeholder="Furniture Name" required class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2">
+                    <select name="color" class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2">
+                        <option value="RED">Red</option>
+                        <option value="GREEN">Green</option>
+                        <option value="BLUE">Blue</option>
+                        <option value="YELLOW">Yellow</option>
+                        <option value="PURPLE">Purple</option>
+                        <option value="ORANGE">Orange</option>
+                        <option value="PINK">Pink</option>
+                        <option value="BROWN">Brown</option>
+                        <option value="GRAY">Gray</option>
+                        <option value="BLACK">Black</option>
+                        <option value="WHITE">White</option>
+                    </select>
+                </div>
+                <h3 class="font-semibold pt-2">Position (meters)</h3>
+                <div class="grid grid-cols-3 gap-4">
+                    <input type="number" name="x" value="0" step="0.1" placeholder="X" class="bg-gray-700 border border-gray-600 rounded px-3 py-2">
+                    <input type="number" name="y" value="0" step="0.1" placeholder="Y" class="bg-gray-700 border border-gray-600 rounded px-3 py-2">
+                    <input type="number" name="z" value="0" step="0.1" placeholder="Z" class="bg-gray-700 border border-gray-600 rounded px-3 py-2">
+                </div>
+                <h3 class="font-semibold pt-2">Dimensions (meters)</h3>
+                <div class="grid grid-cols-3 gap-4">
+                    <input type="number" name="width" value="1" step="0.1" placeholder="Width" class="bg-gray-700 border border-gray-600 rounded px-3 py-2">
+                    <input type="number" name="height" value="1" step="0.1" placeholder="Height" class="bg-gray-700 border border-gray-600 rounded px-3 py-2">
+                    <input type="number" name="depth" value="1" step="0.1" placeholder="Depth" class="bg-gray-700 border border-gray-600 rounded px-3 py-2">
+                </div>
+                <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded">Add Furniture</button>
+            </form>
+        </div>
+    </div>
 
     <!-- Settings Modal -->
     <div id="settings-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
