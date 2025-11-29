@@ -20,6 +20,7 @@ from sdialog.generators.base import BaseAttributeModelGenerator
 from sdialog.audio.utils import Role, Furniture, RGBAColor, SpeakerSide, SourceType, SourceVolume  # noqa: E402
 from sdialog.audio.room_generator import BasicRoomGenerator
 from sdialog.audio.jsalt import MedicalRoomGenerator
+from sdialog import Dialog
 
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'src'))
 
@@ -286,6 +287,76 @@ def auto_assign_voices():
     return jsonify(persona_voice_mapping)
 
 
+@app.route('/api/auto-assign-voices/new', methods=['POST'])
+def auto_assign_new_voices():
+    data = request.json
+    new_persona_names = data.get('persona_names', [])
+
+    if not voice_db:
+        return jsonify({'error': 'Voice database not initialized'}), 500
+    if not new_persona_names:
+        return jsonify(persona_voice_mapping)  # Nothing to do
+
+    new_personas = [p for p in personas if p.name in new_persona_names]
+    if not new_personas:
+        return jsonify({'error': 'New personas not found in server memory'}), 404
+
+    all_voices = []
+    for lang_data in voice_db.get_data().values():
+        for voices_list in lang_data.values():
+            all_voices.extend(voices_list)
+
+    # Filter out already used voices
+    used_voice_ids = set(persona_voice_mapping.values())
+    available_voices = [v for v in all_voices if v.identifier not in used_voice_ids]
+    random.shuffle(available_voices)
+
+    for persona in new_personas:
+        # Same matching logic as the full auto-assign
+        persona_age_category = map_persona_age_to_voice_category(persona.age)
+        persona_gender = persona.gender.lower() if isinstance(persona.gender, str) else 'unspecified'
+        persona_lang = persona.language.lower().split('-')[0] if persona.language else 'en'
+
+        best_voice = None
+        # 1. Exact match for lang, gender, and age
+        candidates = [
+            v for v in available_voices
+            if v.language and v.language.lower().split('-')[0] == persona_lang and
+            v.gender and isinstance(v.gender, str) and v.gender.lower() == persona_gender and
+            map_persona_age_to_voice_category(v.age) == persona_age_category
+        ]
+        if candidates:
+            best_voice = candidates[0]
+        else:
+            # 2. Match for lang and gender
+            candidates = [
+                v for v in available_voices
+                if v.language and v.language.lower().split('-')[0] == persona_lang and
+                v.gender and isinstance(v.gender, str) and v.gender.lower() == persona_gender
+            ]
+            if candidates:
+                best_voice = candidates[0]
+
+        if not best_voice:
+            # 3. Match for lang only
+            candidates = [
+                v for v in available_voices
+                if v.language and v.language.lower().split('-')[0] == persona_lang
+            ]
+            if candidates:
+                best_voice = candidates[0]
+
+        # 4. If still no voice, pick any available one (last resort)
+        if not best_voice and available_voices:
+            best_voice = available_voices[0]
+
+        if best_voice:
+            persona_voice_mapping[persona.name] = best_voice.identifier
+            available_voices.remove(best_voice)
+
+    return jsonify(persona_voice_mapping)
+
+
 @app.route('/api/dialogs', methods=['POST'])
 def create_dialog():
     data = request.json
@@ -335,6 +406,43 @@ def create_dialog():
         dialogs.append(dialog)
 
         return jsonify(dialog.model_dump())
+
+
+@app.route('/api/dialogs/upload', methods=['POST'])
+def upload_dialog():
+    if 'dialog_file' not in request.files:
+        return jsonify({'error': 'No file part'}), 400
+    file = request.files['dialog_file']
+    if file.filename == '':
+        return jsonify({'error': 'No selected file'}), 400
+    if file and file.filename.endswith('.json'):
+        try:
+            file_content = file.read().decode('utf-8')
+            dialog_data = json.loads(file_content)
+            dialog = Dialog.from_dict(dialog_data)
+            dialogs.append(dialog)
+
+            new_persona_names = []
+            if dialog.personas:
+                existing_persona_names = {p.name for p in personas}
+                for persona_data in dialog.personas.values():
+                    if isinstance(persona_data, dict):
+                        # Attempt to parse as a full Persona object to handle different persona types
+                        try:
+                            # Use Persona as a base, but it can validate any subclass dict
+                            new_persona = Persona.model_validate(persona_data)
+                            if new_persona.name and new_persona.name not in existing_persona_names:
+                                personas.append(new_persona)
+                                new_persona_names.append(new_persona.name)
+                        except Exception as e:
+                            print(f"Could not parse persona object: {e}")
+
+            response_data = dialog.model_dump()
+            response_data['new_persona_names'] = new_persona_names
+            return jsonify(response_data)
+        except Exception as e:
+            return jsonify({'error': f'Error processing file: {e}'}), 500
+    return jsonify({'error': 'Invalid file type'}), 400
 
 
 @app.route('/api/voices', methods=['GET'])

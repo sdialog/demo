@@ -84,6 +84,14 @@
                     <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">Generate Dialog</button>
                 </form>
 
+                <div class="mt-6">
+                    <h3 class="font-semibold mb-2">Or Load Dialog from JSON</h3>
+                    <form id="upload-dialog-form" class="space-y-4">
+                        <input type="file" id="dialog-file" name="dialog_file" accept=".json" required class="w-full text-sm text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
+                        <button type="submit" class="w-full bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded">Load Dialog</button>
+                    </form>
+                </div>
+
                 <h3 class="font-semibold mb-2">Generated Dialog</h3>
                 <div id="dialog-display" class="p-4 bg-gray-700 rounded max-h-96 overflow-y-auto"></div>
             </div>

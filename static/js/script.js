@@ -11,6 +11,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const persona1Select = document.getElementById('persona1');
     const persona2Select = document.getElementById('persona2');
     const createDialogForm = document.getElementById('create-dialog-form');
+    const uploadDialogForm = document.getElementById('upload-dialog-form');
     const dialogDisplay = document.getElementById('dialog-display');
     const voicesList = document.getElementById('voices-list');
     const personaVoiceAssignments = document.getElementById('persona-voice-assignments');
@@ -774,6 +775,49 @@ document.addEventListener('DOMContentLoaded', () => {
                     ${dialog.turns.map(turn => `<p><span class="font-semibold">${turn.speaker}:</span> ${turn.text}</p>`).join('')}
                 </div>
             `;
+        })
+        .catch(error => {
+            dialogDisplay.innerHTML = `<p class="text-red-400">Error: ${error.message}</p>`;
+        });
+    });
+
+    uploadDialogForm.addEventListener('submit', (event) => {
+        event.preventDefault();
+        const formData = new FormData(uploadDialogForm);
+        dialogDisplay.innerHTML = '<p>Loading dialog...</p>';
+
+        fetch('/api/dialogs/upload', {
+            method: 'POST',
+            body: formData,
+        })
+        .then(response => {
+            if (!response.ok) return response.json().then(err => { throw new Error(err.error) });
+            return response.json();
+        })
+        .then(data => {
+            const dialog = data; // The dialog object is the main part of the data
+            currentDialogId = dialog.id;
+            dialogDisplay.innerHTML = `
+                <h4 class="font-bold mb-2">Dialog ID: ${dialog.id}</h4>
+                <div class="space-y-2">
+                    ${dialog.turns.map(turn => `<p><span class="font-semibold">${turn.speaker}:</span> ${turn.text}</p>`).join('')}
+                </div>
+            `;
+            fetchPersonas();
+
+            // After personas are added, assign voices to the new ones
+            if (data.new_persona_names && data.new_persona_names.length > 0) {
+                fetch('/api/auto-assign-voices/new', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ persona_names: data.new_persona_names }),
+                })
+                .then(response => response.json())
+                .then(() => {
+                    fetchPersonaVoiceAssignments(); // Refresh the voice assignment display
+                })
+                .catch(error => console.error('Error auto-assigning new voices:', error));
+            }
         })
         .catch(error => {
             dialogDisplay.innerHTML = `<p class="text-red-400">Error: ${error.message}</p>`;
