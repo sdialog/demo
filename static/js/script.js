@@ -383,11 +383,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 `;
             };
 
-            audioPlayer.innerHTML += createAudioPlayer(audioDialog.audio_step_1_filepath, 'Step 1: Utterances');
-            audioPlayer.innerHTML += createAudioPlayer(audioDialog.audio_step_2_filepath, 'Step 2: Combined Audio');
+            audioPlayer.innerHTML += createAudioPlayer(audioDialog.audio_step_1_filepath, 'Utterances');
+            // audioPlayer.innerHTML += createAudioPlayer(audioDialog.audio_step_2_filepath, 'Step 2: Combined Audio');
             if (audioDialog.audio_step_3_filepaths) {
                  for(const [room, data] of Object.entries(audioDialog.audio_step_3_filepaths)) {
-                    audioPlayer.innerHTML += createAudioPlayer(data.audio_path, `Step 3: ${room}`);
+                    audioPlayer.innerHTML += createAudioPlayer(data.audio_path, `Room Acoustics Simulation: ${room}`);
                  }
             }
         })

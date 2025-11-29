@@ -14,7 +14,7 @@ from sdialog.agents import Agent  # noqa: E402
 from sdialog.personas import Persona  # noqa: E402
 from sdialog.audio.room import Room, Dimensions3D, Position3D  # noqa: E422
 from sdialog.audio.pipeline import to_audio  # noqa: E402
-from sdialog.audio.tts_engine import KokoroTTS  # noqa: E402
+from sdialog.audio.tts import KokoroTTS
 from sdialog.audio.voice_database import HuggingfaceVoiceDatabase  # noqa: E402
 from sdialog.generators.base import BaseAttributeModelGenerator
 from sdialog.audio.utils import Role  # noqa: E402
@@ -452,15 +452,15 @@ def generate_audio(dialog_id):
     dialog_audio_dir = os.path.join(APP_ROOT, 'static', 'audio', dialog_id)
     os.makedirs(dialog_audio_dir, exist_ok=True)
 
+    perform_acoustics = do_step_2 or do_step_3
     audio_dialog = to_audio(
         dialog=dialog_obj,
         dir_audio=dialog_audio_dir,
-        do_step_1=do_step_1,
-        do_step_2=do_step_2,
-        do_step_3=do_step_3,
+        perform_room_acoustics=perform_acoustics,
         tts_engine=tts_engine,
         voice_database=voice_db,
-        room=room_obj,
+        room=room_obj if perform_acoustics else None,
+        override_tts_audio=do_step_1
     )
 
     # This returns the paths to the generated files
