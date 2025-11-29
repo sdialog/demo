@@ -215,6 +215,41 @@
         </div>
     </div>
 
+    <!-- Set Mic Position Modal -->
+    <div id="set-mic-position-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+        <div class="bg-gray-800 p-8 rounded-lg shadow-2xl w-full max-w-md">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-2xl font-bold">Set Mic Position for <span id="mic-modal-room-name"></span></h2>
+                <button id="close-mic-modal-btn" class="text-gray-400 hover:text-white">&times;</button>
+            </div>
+            <form id="set-mic-position-form" class="space-y-4">
+                <input type="hidden" id="mic-room-id" name="room_id">
+                <div>
+                    <label for="mic-position" class="block mb-2 text-sm font-medium">Position:</label>
+                    <select id="mic-position" name="mic_position" class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2">
+                        <option value="desk_smartphone">Desk Smartphone</option>
+                        <option value="monitor">Monitor</option>
+                        <option value="wall_mounted">Wall Mounted</option>
+                        <option value="ceiling_centered">Ceiling Centered</option>
+                        <option value="chest_pocket_speaker_1">Chest Pocket (Speaker 1)</option>
+                        <option value="chest_pocket_speaker_2">Chest Pocket (Speaker 2)</option>
+                        <option value="middle_speakers">Middle of Speakers</option>
+                        <option value="custom">Custom</option>
+                    </select>
+                </div>
+                <div id="custom-mic-position-params" class="hidden space-y-4 pt-2">
+                    <h3 class="font-semibold">Custom Position (meters)</h3>
+                    <div class="grid grid-cols-3 gap-4">
+                        <input type="number" name="x" value="0" step="0.1" placeholder="X" class="bg-gray-700 border border-gray-600 rounded px-3 py-2">
+                        <input type="number" name="y" value="0" step="0.1" placeholder="Y" class="bg-gray-700 border border-gray-600 rounded px-3 py-2">
+                        <input type="number" name="z" value="0" step="0.1" placeholder="Z" class="bg-gray-700 border border-gray-600 rounded px-3 py-2">
+                    </div>
+                </div>
+                <button type="submit" class="w-full bg-cyan-600 hover:bg-cyan-700 text-white font-bold py-2 px-4 rounded">Set Position</button>
+            </form>
+        </div>
+    </div>
+
     <!-- Settings Modal -->
     <div id="settings-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
         <div class="bg-gray-800 p-8 rounded-lg shadow-2xl w-full max-w-md">

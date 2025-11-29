@@ -109,6 +109,71 @@ document.addEventListener('DOMContentLoaded', () => {
         .catch(error => alert(`Error adding furniture: ${error.message}`));
     });
 
+    // --- Mic Position Modal Logic ---
+    const setMicPositionModal = document.getElementById('set-mic-position-modal');
+    const closeMicModalBtn = document.getElementById('close-mic-modal-btn');
+    const setMicPositionForm = document.getElementById('set-mic-position-form');
+    const micModalRoomName = document.getElementById('mic-modal-room-name');
+    const micRoomIdInput = document.getElementById('mic-room-id');
+    const micPositionSelect = document.getElementById('mic-position');
+    const customMicPositionParams = document.getElementById('custom-mic-position-params');
+
+    micPositionSelect.addEventListener('change', () => {
+        if (micPositionSelect.value === 'custom') {
+            customMicPositionParams.classList.remove('hidden');
+        } else {
+            customMicPositionParams.classList.add('hidden');
+        }
+    });
+
+    const openMicPositionModal = (roomId, roomName, currentMicPosition) => {
+        micModalRoomName.textContent = roomName;
+        micRoomIdInput.value = roomId;
+        setMicPositionForm.reset();
+
+        // Set the current mic position in the select dropdown
+        if (currentMicPosition) {
+            // The mic_position from the backend is uppercase (e.g., 'CEILING_CENTERED')
+            // but the select options have lowercase values (e.g., 'ceiling_centered')
+            micPositionSelect.value = currentMicPosition.toLowerCase();
+        }
+        micPositionSelect.dispatchEvent(new Event('change')); // Trigger change to show/hide custom fields
+        setMicPositionModal.classList.remove('hidden');
+    };
+
+    const closeMicPositionModal = () => {
+        setMicPositionModal.classList.add('hidden');
+    };
+
+    closeMicModalBtn.addEventListener('click', closeMicPositionModal);
+    setMicPositionModal.addEventListener('click', (event) => {
+        if (event.target === setMicPositionModal) {
+            closeMicPositionModal();
+        }
+    });
+
+    setMicPositionForm.addEventListener('submit', (event) => {
+        event.preventDefault();
+        const formData = new FormData(setMicPositionForm);
+        const data = Object.fromEntries(formData.entries());
+        const roomId = data.room_id;
+
+        fetch(`/api/rooms/${roomId}/mic-position`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data),
+        })
+        .then(response => {
+            if (!response.ok) return response.json().then(err => { throw new Error(err.error) });
+            return response.json();
+        })
+        .then(() => {
+            closeMicPositionModal();
+            fetchRooms(); // Refresh the list to show the updated mic position
+        })
+        .catch(error => alert(`Error setting mic position: ${error.message}`));
+    });
+
     // --- Room Image Modal Logic ---
     const roomImageModal = document.getElementById('room-image-modal');
     const zoomedRoomImage = document.getElementById('zoomed-room-image');
@@ -257,6 +322,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     roomHeader.innerHTML = `
                         <span>${room.name}</span>
                         <div>
+                            <button class="set-mic-btn text-cyan-400 hover:text-cyan-600 text-xs mr-2" data-id="${room.id}" data-name="${room.name}" data-mic-position="${room.mic_position}">Set Mic</button>
                             <button class="add-furniture-btn text-blue-400 hover:text-blue-600 text-xs mr-2" data-id="${room.id}" data-name="${room.name}">+ Furniture</button>
                             <button class="delete-room-btn text-red-500 hover:text-red-700 text-xs" data-id="${room.id}">Delete</button>
                         </div>
@@ -275,6 +341,14 @@ document.addEventListener('DOMContentLoaded', () => {
                     roomContent.querySelector('img').addEventListener('click', (e) => {
                         const highResUrl = `${e.target.src}?width=1024&height=1024`;
                         openRoomImageModal(highResUrl);
+                    });
+
+                    roomHeader.querySelector('.set-mic-btn').addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        const roomId = e.target.getAttribute('data-id');
+                        const roomName = e.target.getAttribute('data-name');
+                        const micPosition = e.target.getAttribute('data-mic-position');
+                        openMicPositionModal(roomId, roomName, micPosition);
                     });
 
                     roomHeader.querySelector('.add-furniture-btn').addEventListener('click', (e) => {

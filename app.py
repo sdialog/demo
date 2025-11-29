@@ -12,7 +12,7 @@ from sdialog import Context  # noqa: E402
 from sdialog import config
 from sdialog.agents import Agent  # noqa: E402
 from sdialog.personas import Persona  # noqa: E402
-from sdialog.audio.room import Room, Dimensions3D, Position3D  # noqa: E422
+from sdialog.audio.room import Room, Dimensions3D, Position3D, MicrophonePosition  # noqa: E422
 from sdialog.audio.pipeline import to_audio  # noqa: E402
 from sdialog.audio.tts import KokoroTTS
 from sdialog.audio.voice_database import HuggingfaceVoiceDatabase  # noqa: E402
@@ -483,6 +483,44 @@ def add_furniture_to_room(room_id):
         room_obj.furnitures[furniture_name] = new_furniture
     except (ValueError, KeyError) as e:
         return jsonify({'error': f'Invalid furniture data: {e}'}), 400
+
+    return jsonify(room_obj.model_dump(mode='json')), 200
+
+
+@app.route('/api/rooms/<string:room_id>/mic-position', methods=['POST'])
+def set_mic_position(room_id):
+    room_obj = next((r for r in rooms if r.id == room_id), None)
+    if not room_obj:
+        return jsonify({'error': 'Room not found'}), 404
+
+    data = request.json
+    mic_position_str = data.get('mic_position')
+
+    if not mic_position_str:
+        return jsonify({'error': 'mic_position is required'}), 400
+
+    try:
+        # Convert string back to MicrophonePosition enum member
+        mic_position_enum = MicrophonePosition[mic_position_str.upper()]
+
+        position_3d = None
+        if mic_position_enum == MicrophonePosition.CUSTOM:
+            try:
+                x = float(data.get('x', 0))
+                y = float(data.get('y', 0))
+                z = float(data.get('z', 0))
+                position_3d = Position3D(x=x, y=y, z=z)
+            except (ValueError, TypeError):
+                return jsonify({'error': 'Invalid coordinates for CUSTOM position'}), 400
+
+        # Use the existing method in the Room class to update the position
+        room_obj.set_mic_position(mic_position=mic_position_enum, position_3D=position_3d)
+
+    except KeyError:
+        return jsonify({'error': f"Invalid mic_position: {mic_position_str}"}), 400
+    except ValueError as e:
+        # This can catch errors from set_mic_position (e.g., missing furniture)
+        return jsonify({'error': str(e)}), 400
 
     return jsonify(room_obj.model_dump(mode='json')), 200
 
