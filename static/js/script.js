@@ -18,6 +18,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const roomsList = document.getElementById('rooms-list');
     const audioRoomSelect = document.getElementById('audio-room');
     let currentDialogId = null;
+    let generatedAudioForDialogs = new Set();
 
     // Room gen elements
     const generatorType = document.getElementById('generator-type');
@@ -291,7 +292,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (!response.ok) return response.json().then(err => { throw new Error(err.error) });
                 return response.json();
             })
-            .then(() => fetchPersonaVoiceAssignments())
+            .then(() => {
+                fetchPersonaVoiceAssignments();
+                generatedAudioForDialogs.clear();
+                console.log('Voice assignments have been updated. TTS cache cleared.');
+            })
             .catch(error => alert(`Error auto-assigning voices: ${error.message}`))
             .finally(() => {
                 button.textContent = 'Auto-assign Voices';
@@ -397,19 +402,30 @@ document.addEventListener('DOMContentLoaded', () => {
         button.disabled = true;
         button.classList.add('loading');
 
+        const override_tts = !generatedAudioForDialogs.has(currentDialogId);
 
         fetch(`/api/dialogs/${currentDialogId}/generate-audio`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                do_step_1: true,
+                do_step_1: override_tts,
                 do_step_2: true,
                 do_step_3: true,
                 room_name: roomName,
             }),
         })
-        .then(response => response.json())
+        .then(response => {
+            if (!response.ok) return response.json().then(err => { throw new Error(err.error) });
+            return response.json();
+        })
         .then(audioDialog => {
+            if (override_tts) {
+                console.log(`TTS generated for dialog ${currentDialogId}. Caching.`);
+                generatedAudioForDialogs.add(currentDialogId);
+            } else {
+                console.log(`Using cached TTS for dialog ${currentDialogId}.`);
+            }
+
             audioPlayer.innerHTML = '';
             const createAudioPlayer = (path, title) => {
                 if (!path) return '';
