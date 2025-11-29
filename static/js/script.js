@@ -19,6 +19,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const audioRoomSelect = document.getElementById('audio-room');
     let currentDialogId = null;
 
+    // Room gen elements
+    const generatorType = document.getElementById('generator-type');
+    const customParams = document.getElementById('custom-params');
+    const basicParams = document.getElementById('basic-params');
+    const medicalParams = document.getElementById('medical-params');
+
     // LLM Config elements
     const llmProvider = document.getElementById('llm-provider');
     const llmModelName = document.getElementById('llm-model-name');
@@ -37,6 +43,21 @@ document.addEventListener('DOMContentLoaded', () => {
     settingsModal.addEventListener('click', (event) => {
         if (event.target === settingsModal) {
             settingsModal.classList.add('hidden');
+        }
+    });
+
+    // --- Room Gen Logic ---
+    generatorType.addEventListener('change', () => {
+        customParams.classList.add('hidden');
+        basicParams.classList.add('hidden');
+        medicalParams.classList.add('hidden');
+
+        if (generatorType.value === 'custom') {
+            customParams.classList.remove('hidden');
+        } else if (generatorType.value === 'basic') {
+            basicParams.classList.remove('hidden');
+        } else if (generatorType.value === 'medical') {
+            medicalParams.classList.remove('hidden');
         }
     });
 
@@ -282,18 +303,36 @@ document.addEventListener('DOMContentLoaded', () => {
     createRoomForm.addEventListener('submit', (event) => {
         event.preventDefault();
         const formData = new FormData(createRoomForm);
-        const data = Object.fromEntries(formData.entries());
+        const data = {};
+
+        data.name = formData.get('name');
+        data.generator_type = formData.get('generator_type');
+
+        if (data.generator_type === 'custom') {
+            data.width = formData.get('width');
+            data.length = formData.get('length');
+            data.height = formData.get('height');
+        } else if (data.generator_type === 'basic') {
+            data.room_size = formData.get('room_size');
+        } else if (data.generator_type === 'medical') {
+            data.room_type = formData.get('room_type');
+        }
 
         fetch('/api/rooms', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(data),
         })
-        .then(response => response.json())
+        .then(response => {
+            if (!response.ok) return response.json().then(err => { throw new Error(err.error) });
+            return response.json();
+        })
         .then(() => {
             fetchRooms();
-            createRoomForm.reset();
-        });
+            // Don't reset the whole form, just the name, to keep selections
+            document.getElementById('room-name').value = '';
+        })
+        .catch(error => alert(`Error creating room: ${error.message}`));
     });
 
     createDialogForm.addEventListener('submit', (event) => {

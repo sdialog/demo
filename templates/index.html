@@ -92,13 +92,50 @@
                 <h2 class="text-xl font-semibold mb-4 border-b border-gray-700 pb-2">4. Room Generation</h2>
                 
                 <form id="create-room-form" class="space-y-4 mb-6">
-                     <input type="text" id="room-name" name="name" placeholder="Room Name" class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2">
-                     <div class="grid grid-cols-3 gap-4">
-                        <input type="number" id="room-width" name="width" value="5" step="0.1" placeholder="Width" class="bg-gray-700 border border-gray-600 rounded px-3 py-2">
-                        <input type="number" id="room-length" name="length" value="4" step="0.1" placeholder="Length" class="bg-gray-700 border border-gray-600 rounded px-3 py-2">
-                        <input type="number" id="room-height" name="height" value="3" step="0.1" placeholder="Height" class="bg-gray-700 border border-gray-600 rounded px-3 py-2">
-                     </div>
-                     <button type="submit" class="w-full bg-teal-600 hover:bg-teal-700 text-white font-bold py-2 px-4 rounded">Create Room</button>
+                    <input type="text" id="room-name" name="name" placeholder="Room Name" class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2">
+                    
+                    <div>
+                        <label for="generator-type" class="block mb-2 text-sm font-medium">Generator Type:</label>
+                        <select id="generator-type" name="generator_type" class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2">
+                            <option value="custom" selected>Custom Dimensions</option>
+                            <option value="basic">Basic Room</option>
+                            <option value="medical">Medical Room</option>
+                        </select>
+                    </div>
+
+                    <div id="custom-params" class="space-y-4">
+                        <div class="grid grid-cols-3 gap-4">
+                           <input type="number" id="room-width" name="width" value="5" step="0.1" placeholder="Width" class="bg-gray-700 border border-gray-600 rounded px-3 py-2">
+                           <input type="number" id="room-length" name="length" value="4" step="0.1" placeholder="Length" class="bg-gray-700 border border-gray-600 rounded px-3 py-2">
+                           <input type="number" id="room-height" name="height" value="3" step="0.1" placeholder="Height" class="bg-gray-700 border border-gray-600 rounded px-3 py-2">
+                        </div>
+                    </div>
+                    
+                    <div id="basic-params" class="hidden space-y-4">
+                        <div>
+                           <label for="room-size" class="block mb-2 text-sm font-medium">Room Size (m²):</label>
+                           <input type="number" id="room-size" name="room_size" value="20" step="0.1" placeholder="Room Size" class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2">
+                        </div>
+                    </div>
+
+                    <div id="medical-params" class="hidden space-y-4">
+                        <div>
+                            <label for="room-type" class="block mb-2 text-sm font-medium">Room Type:</label>
+                            <select id="room-type" name="room_type" class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2">
+                                <option value="random" selected>Random</option>
+                                <option value="consultation">Consultation (4.5m²)</option>
+                                <option value="examination">Examination (6m²)</option>
+                                <option value="treatment">Treatment (8m²)</option>
+                                <option value="patient_room">Patient Room (9.5m²)</option>
+                                <option value="surgery">Surgery (12m²)</option>
+                                <option value="waiting_room">Waiting Room (15m²)</option>
+                                <option value="emergency">Emergency (18m²)</option>
+                                <option value="office">Office (20m²)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="w-full bg-teal-600 hover:bg-teal-700 text-white font-bold py-2 px-4 rounded">Create Room</button>
                 </form>
                 
                 <h3 id="available-rooms-header" class="collapsible font-semibold mb-2 cursor-pointer">Available Rooms</h3>

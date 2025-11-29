@@ -18,6 +18,8 @@ from sdialog.audio.tts import KokoroTTS
 from sdialog.audio.voice_database import HuggingfaceVoiceDatabase  # noqa: E402
 from sdialog.generators.base import BaseAttributeModelGenerator
 from sdialog.audio.utils import Role  # noqa: E402
+from sdialog.audio.room_generator import BasicRoomGenerator
+from sdialog.audio.jsalt import MedicalRoomGenerator
 
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'src'))
 
@@ -371,28 +373,52 @@ def get_persona_voices():
 @app.route('/api/rooms', methods=['POST'])
 def create_room():
     data = request.json
+    generator_type = data.get('generator_type', 'custom')
     name = data.get('name', f"Room_{len(rooms)+1}")
-    width = float(data.get('width', 5))
-    length = float(data.get('length', 4))
-    height = float(data.get('height', 3))
 
-    dimensions = Dimensions3D(width=width, length=length, height=height)
+    room = None
 
-    # Explicitly place two speakers to ensure they are present for visualization
-    speaker1_pos = Position3D(x=width * 0.25, y=length / 2, z=1.6)
-    speaker2_pos = Position3D(x=width * 0.75, y=length / 2, z=1.6)
+    if generator_type == 'custom':
+        width = float(data.get('width', 5))
+        length = float(data.get('length', 4))
+        height = float(data.get('height', 3))
+        dimensions = Dimensions3D(width=width, length=length, height=height)
+        # Explicitly place two speakers to ensure they are present for visualization
+        speaker1_pos = Position3D(x=width * 0.25, y=length / 2, z=1.6)
+        speaker2_pos = Position3D(x=width * 0.75, y=length / 2, z=1.6)
+        room = Room(
+            name=name,
+            dimensions=dimensions,
+            speakers_positions={
+                Role.SPEAKER_1: speaker1_pos,
+                Role.SPEAKER_2: speaker2_pos,
+            }
+        )
+    elif generator_type == 'basic':
+        room_size = float(data.get('room_size', 20))
+        generator = BasicRoomGenerator()
+        room = generator.generate(args={"room_size": room_size})
+        room.name = name  # Override default name
+    elif generator_type == 'medical':
+        room_type = data.get('room_type', 'random')
+        generator = MedicalRoomGenerator()
+        room = generator.generate(args={"room_type": room_type})
+        room.name = name  # Override default name
 
-    room = Room(
-        name=name,
-        dimensions=dimensions,
-        speakers_positions={
+    if room:
+        # Explicitly place two speakers to ensure they are present for visualization
+        width = room.dimensions.width
+        length = room.dimensions.length
+        speaker1_pos = Position3D(x=width * 0.25, y=length / 2, z=1.6)
+        speaker2_pos = Position3D(x=width * 0.75, y=length / 2, z=1.6)
+        room.speakers_positions = {
             Role.SPEAKER_1: speaker1_pos,
             Role.SPEAKER_2: speaker2_pos,
         }
-    )
-    rooms.append(room)
-
-    return jsonify(room.model_dump(mode='json')), 201
+        rooms.append(room)
+        return jsonify(room.model_dump(mode='json')), 201
+    else:
+        return jsonify({'error': 'Invalid generator type'}), 400
 
 
 @app.route('/api/rooms', methods=['GET'])
