@@ -17,7 +17,7 @@ from sdialog.audio.pipeline import to_audio  # noqa: E402
 from sdialog.audio.tts import KokoroTTS
 from sdialog.audio.voice_database import HuggingfaceVoiceDatabase  # noqa: E402
 from sdialog.generators.base import BaseAttributeModelGenerator
-from sdialog.audio.utils import Role, Furniture, RGBAColor  # noqa: E402
+from sdialog.audio.utils import Role, Furniture, RGBAColor, SpeakerSide  # noqa: E402
 from sdialog.audio.room_generator import BasicRoomGenerator
 from sdialog.audio.jsalt import MedicalRoomGenerator
 
@@ -521,6 +521,54 @@ def set_mic_position(room_id):
     except ValueError as e:
         # This can catch errors from set_mic_position (e.g., missing furniture)
         return jsonify({'error': str(e)}), 400
+
+    return jsonify(room_obj.model_dump(mode='json')), 200
+
+
+@app.route('/api/rooms/<string:room_id>/speaker-positions', methods=['POST'])
+def set_speaker_positions(room_id):
+    room_obj = next((r for r in rooms if r.id == room_id), None)
+    if not room_obj:
+        return jsonify({'error': 'Room not found'}), 404
+
+    data = request.json
+    room_obj.speakers_positions_config = data
+
+    try:
+        for speaker_name_str, speaker_config in data.items():
+            if speaker_name_str not in ["speaker_1", "speaker_2"]:
+                continue
+
+            speaker_name = Role[speaker_name_str.upper()]
+            placement_type = speaker_config.get('placement_type')
+
+            if placement_type == 'absolute':
+                x = float(speaker_config.get('x', 0))
+                y = float(speaker_config.get('y', 0))
+                z = float(speaker_config.get('z', 0))
+                position = Position3D(x=x, y=y, z=z)
+                room_obj.place_speaker(speaker_name=speaker_name, position=position)
+
+            elif placement_type == 'relative':
+                furniture_name = speaker_config.get('furniture_name')
+                side_str = speaker_config.get('side')
+                max_distance = float(speaker_config.get('max_distance', 0.3))
+
+                side = None
+                if side_str and side_str != 'any':
+                    side = SpeakerSide[side_str.upper()]
+
+                room_obj.place_speaker_around_furniture(
+                    speaker_name=speaker_name,
+                    furniture_name=furniture_name,
+                    max_distance=max_distance,
+                    side=side
+                )
+            else:
+                return jsonify({'error': f'Invalid placement_type for {speaker_name_str}'}), 400
+
+    except (ValueError, KeyError, TypeError) as e:
+        return jsonify({'error': f'Invalid speaker position data: {e}'}), 400
 
     return jsonify(room_obj.model_dump(mode='json')), 200
 

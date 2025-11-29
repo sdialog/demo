@@ -6,6 +6,7 @@
     <title>SDialog Web Demo</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 </head>
 <body class="bg-gray-900 text-white font-sans">
     <!-- Header -->
@@ -211,6 +212,109 @@
                     <input type="number" name="depth" value="1" step="0.1" placeholder="Depth" class="bg-gray-700 border border-gray-600 rounded px-3 py-2">
                 </div>
                 <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded">Add Furniture</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Set Speaker Positions Modal -->
+    <div id="set-speaker-positions-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+        <div class="bg-gray-800 p-8 rounded-lg shadow-2xl w-full max-w-2xl">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-2xl font-bold">Set Speaker Positions for <span id="speaker-modal-room-name"></span></h2>
+                <button id="close-speaker-modal-btn" class="text-gray-400 hover:text-white">&times;</button>
+            </div>
+            <form id="set-speaker-positions-form" class="space-y-6">
+                <input type="hidden" id="speaker-room-id" name="room_id">
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Speaker 1 Column -->
+                    <div class="speaker-config-card p-4 bg-gray-700 rounded-md" data-speaker="speaker_1">
+                        <h3 class="font-bold text-lg mb-4">Speaker 1</h3>
+                        <div class="space-y-4">
+                            <div>
+                                <label class="block mb-2 text-sm font-medium">Placement Type:</label>
+                                <select name="speaker_1_placement_type" class="w-full bg-gray-600 border border-gray-500 rounded px-3 py-2 speaker-placement-type">
+                                    <option value="absolute">Absolute Position</option>
+                                    <option value="relative">Relative to Furniture</option>
+                                </select>
+                            </div>
+                            <div class="speaker-absolute-params space-y-2">
+                                <h4 class="font-semibold text-sm">Absolute Position (m)</h4>
+                                <div class="grid grid-cols-3 gap-2">
+                                    <input type="number" name="speaker_1_x" value="0" step="0.1" placeholder="X" class="bg-gray-600 border border-gray-500 rounded px-3 py-2">
+                                    <input type="number" name="speaker_1_y" value="0" step="0.1" placeholder="Y" class="bg-gray-600 border border-gray-500 rounded px-3 py-2">
+                                    <input type="number" name="speaker_1_z" value="0" step="0.1" placeholder="Z" class="bg-gray-600 border border-gray-500 rounded px-3 py-2">
+                                </div>
+                            </div>
+                            <div class="speaker-relative-params hidden space-y-2">
+                                <h4 class="font-semibold text-sm">Relative Position</h4>
+                                <div>
+                                    <label class="block mb-1 text-xs">Furniture:</label>
+                                    <select name="speaker_1_furniture_name" class="w-full bg-gray-600 border border-gray-500 rounded px-3 py-2 furniture-select"></select>
+                                </div>
+                                <div>
+                                    <label class="block mb-1 text-xs">Side:</label>
+                                    <select name="speaker_1_side" class="w-full bg-gray-600 border border-gray-500 rounded px-3 py-2">
+                                        <option value="any">Any</option>
+                                        <option value="front">Front</option>
+                                        <option value="back">Back</option>
+                                        <option value="left">Left</option>
+                                        <option value="right">Right</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block mb-1 text-xs">Max Distance (m):</label>
+                                    <input type="number" name="speaker_1_max_distance" value="0.3" step="0.1" class="w-full bg-gray-600 border border-gray-500 rounded px-3 py-2">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Speaker 2 Column -->
+                    <div class="speaker-config-card p-4 bg-gray-700 rounded-md" data-speaker="speaker_2">
+                        <h3 class="font-bold text-lg mb-4">Speaker 2</h3>
+                        <div class="space-y-4">
+                             <div>
+                                <label class="block mb-2 text-sm font-medium">Placement Type:</label>
+                                <select name="speaker_2_placement_type" class="w-full bg-gray-600 border border-gray-500 rounded px-3 py-2 speaker-placement-type">
+                                    <option value="absolute">Absolute Position</option>
+                                    <option value="relative">Relative to Furniture</option>
+                                </select>
+                            </div>
+                            <div class="speaker-absolute-params space-y-2">
+                                <h4 class="font-semibold text-sm">Absolute Position (m)</h4>
+                                <div class="grid grid-cols-3 gap-2">
+                                    <input type="number" name="speaker_2_x" value="0" step="0.1" placeholder="X" class="bg-gray-600 border border-gray-500 rounded px-3 py-2">
+                                    <input type="number" name="speaker_2_y" value="0" step="0.1" placeholder="Y" class="bg-gray-600 border border-gray-500 rounded px-3 py-2">
+                                    <input type="number" name="speaker_2_z" value="0" step="0.1" placeholder="Z" class="bg-gray-600 border border-gray-500 rounded px-3 py-2">
+                                </div>
+                            </div>
+                            <div class="speaker-relative-params hidden space-y-2">
+                                <h4 class="font-semibold text-sm">Relative Position</h4>
+                                <div>
+                                    <label class="block mb-1 text-xs">Furniture:</label>
+                                    <select name="speaker_2_furniture_name" class="w-full bg-gray-600 border border-gray-500 rounded px-3 py-2 furniture-select"></select>
+                                </div>
+                                <div>
+                                    <label class="block mb-1 text-xs">Side:</label>
+                                    <select name="speaker_2_side" class="w-full bg-gray-600 border border-gray-500 rounded px-3 py-2">
+                                        <option value="any">Any</option>
+                                        <option value="front">Front</option>
+                                        <option value="back">Back</option>
+                                        <option value="left">Left</option>
+                                        <option value="right">Right</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block mb-1 text-xs">Max Distance (m):</label>
+                                    <input type="number" name="speaker_2_max_distance" value="0.3" step="0.1" class="w-full bg-gray-600 border border-gray-500 rounded px-3 py-2">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <button type="submit" class="w-full mt-6 bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded">Set Speaker Positions</button>
             </form>
         </div>
     </div>

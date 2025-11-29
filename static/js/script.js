@@ -109,6 +109,196 @@ document.addEventListener('DOMContentLoaded', () => {
         .catch(error => alert(`Error adding furniture: ${error.message}`));
     });
 
+    // --- Speaker Positions Modal Logic ---
+    const setSpeakerPositionsModal = document.getElementById('set-speaker-positions-modal');
+    const closeSpeakerModalBtn = document.getElementById('close-speaker-modal-btn');
+    const setSpeakerPositionsForm = document.getElementById('set-speaker-positions-form');
+    const speakerModalRoomName = document.getElementById('speaker-modal-room-name');
+    const speakerRoomIdInput = document.getElementById('speaker-room-id');
+    let roomsCache = new Map();
+    const speakerModalCache = new Map();
+
+    document.querySelectorAll('.speaker-placement-type').forEach(select => {
+        select.addEventListener('change', (e) => {
+            const speakerCard = e.target.closest('.speaker-config-card');
+            const absoluteParams = speakerCard.querySelector('.speaker-absolute-params');
+            const relativeParams = speakerCard.querySelector('.speaker-relative-params');
+            if (e.target.value === 'absolute') {
+                absoluteParams.classList.remove('hidden');
+                relativeParams.classList.add('hidden');
+            } else {
+                absoluteParams.classList.add('hidden');
+                relativeParams.classList.remove('hidden');
+            }
+        });
+    });
+
+    const openSpeakerPositionsModal = (room) => {
+        speakerModalRoomName.textContent = room.name;
+        speakerRoomIdInput.value = room.id;
+    
+        // Populate furniture dropdowns
+        const furnitureSelects = setSpeakerPositionsModal.querySelectorAll('.furniture-select');
+        furnitureSelects.forEach(select => {
+            select.innerHTML = ''; // Clear previous options
+            if (room.furnitures && Object.keys(room.furnitures).length > 0) {
+                Object.keys(room.furnitures).forEach(furnitureName => {
+                    const option = document.createElement('option');
+                    option.value = furnitureName;
+                    option.textContent = furnitureName;
+                    select.appendChild(option);
+                });
+            } else {
+                const option = document.createElement('option');
+                option.textContent = 'No furniture available';
+                option.disabled = true;
+                select.appendChild(option);
+            }
+        });
+    
+        if (speakerModalCache.has(room.id)) {
+            const data = speakerModalCache.get(room.id);
+            // Populate form from cache
+            ['speaker_1', 'speaker_2'].forEach(speakerKey => {
+                const config = data[speakerKey] || data;
+                setSpeakerPositionsForm.querySelector(`[name="${speakerKey}_placement_type"]`).value = config[`${speakerKey}_placement_type`] || 'absolute';
+                setSpeakerPositionsForm.querySelector(`[name="${speakerKey}_x"]`).value = config[`${speakerKey}_x`] || '0';
+                setSpeakerPositionsForm.querySelector(`[name="${speakerKey}_y"]`).value = config[`${speakerKey}_y`] || '0';
+                setSpeakerPositionsForm.querySelector(`[name="${speakerKey}_z"]`).value = config[`${speakerKey}_z`] || '0';
+                setSpeakerPositionsForm.querySelector(`[name="${speakerKey}_furniture_name"]`).value = config[`${speakerKey}_furniture_name`] || '';
+                setSpeakerPositionsForm.querySelector(`[name="${speakerKey}_side"]`).value = config[`${speakerKey}_side`] || 'any';
+                setSpeakerPositionsForm.querySelector(`[name="${speakerKey}_max_distance"]`).value = config[`${speakerKey}_max_distance`] || '0.3';
+                
+                const placementSelect = setSpeakerPositionsForm.querySelector(`[name="${speakerKey}_placement_type"]`);
+                placementSelect.dispatchEvent(new Event('change'));
+            });
+        } else if (room.speakers_positions_config && Object.keys(room.speakers_positions_config).length > 0) {
+            // Populate from the room's saved config
+            ['speaker_1', 'speaker_2'].forEach(speakerKey => {
+                const config = room.speakers_positions_config[speakerKey];
+                if (config) {
+                    setSpeakerPositionsForm.querySelector(`[name="${speakerKey}_placement_type"]`).value = config.placement_type;
+                    
+                    if (config.placement_type === 'absolute') {
+                        setSpeakerPositionsForm.querySelector(`[name="${speakerKey}_x"]`).value = config.x || '0';
+                        setSpeakerPositionsForm.querySelector(`[name="${speakerKey}_y"]`).value = config.y || '0';
+                        setSpeakerPositionsForm.querySelector(`[name="${speakerKey}_z"]`).value = config.z || '0';
+                    } else { // relative
+                        setSpeakerPositionsForm.querySelector(`[name="${speakerKey}_furniture_name"]`).value = config.furniture_name || '';
+                        setSpeakerPositionsForm.querySelector(`[name="${speakerKey}_side"]`).value = config.side || 'any';
+                        setSpeakerPositionsForm.querySelector(`[name="${speakerKey}_max_distance"]`).value = config.max_distance || '0.3';
+                    }
+                }
+                const placementSelect = setSpeakerPositionsForm.querySelector(`[name="${speakerKey}_placement_type"]`);
+                placementSelect.dispatchEvent(new Event('change'));
+            });
+            // Prime the cache with the saved config
+            const formData = new FormData(setSpeakerPositionsForm);
+            const initialData = Object.fromEntries(formData.entries());
+            delete initialData.room_id;
+            speakerModalCache.set(room.id, initialData);
+        } else {
+            // Populate from room object for the first time (legacy or new room)
+            ['speaker_1', 'speaker_2'].forEach(speakerKey => {
+                const pos = room.speakers_positions[speakerKey];
+                
+                // Set absolute params - pos is an array [x, y, z] due to the custom JSON encoder
+                if (pos && Array.isArray(pos) && pos.length === 3) {
+                    setSpeakerPositionsForm.querySelector(`[name="${speakerKey}_x"]`).value = Number(pos[0]).toFixed(2);
+                    setSpeakerPositionsForm.querySelector(`[name="${speakerKey}_y"]`).value = Number(pos[1]).toFixed(2);
+                    setSpeakerPositionsForm.querySelector(`[name="${speakerKey}_z"]`).value = Number(pos[2]).toFixed(2);
+                } else {
+                    setSpeakerPositionsForm.querySelector(`[name="${speakerKey}_x"]`).value = '0.00';
+                    setSpeakerPositionsForm.querySelector(`[name="${speakerKey}_y"]`).value = '0.00';
+                    setSpeakerPositionsForm.querySelector(`[name="${speakerKey}_z"]`).value = '0.00';
+                }
+
+                // Set relative params to defaults
+                const furnitureSelect = setSpeakerPositionsForm.querySelector(`[name="${speakerKey}_furniture_name"]`);
+                if (furnitureSelect.options.length > 0) {
+                    furnitureSelect.selectedIndex = 0;
+                }
+                setSpeakerPositionsForm.querySelector(`[name="${speakerKey}_side"]`).value = 'any';
+                setSpeakerPositionsForm.querySelector(`[name="${speakerKey}_max_distance"]`).value = '0.3';
+
+                // Set placement type
+                const placementSelect = setSpeakerPositionsForm.querySelector(`[name="${speakerKey}_placement_type"]`);
+                placementSelect.value = 'absolute';
+                placementSelect.dispatchEvent(new Event('change'));
+            });
+            
+            // Save this initial state to cache
+            const formData = new FormData(setSpeakerPositionsForm);
+            const initialData = Object.fromEntries(formData.entries());
+            delete initialData.room_id;
+            speakerModalCache.set(room.id, initialData);
+        }
+    
+        setSpeakerPositionsModal.classList.remove('hidden');
+    };
+
+    const closeSpeakerPositionsModal = () => {
+        setSpeakerPositionsModal.classList.add('hidden');
+    };
+
+    closeSpeakerModalBtn.addEventListener('click', closeSpeakerPositionsModal);
+    setSpeakerPositionsModal.addEventListener('click', (event) => {
+        if (event.target === setSpeakerPositionsModal) {
+            closeSpeakerPositionsModal();
+        }
+    });
+
+    setSpeakerPositionsForm.addEventListener('input', () => {
+        const roomId = speakerRoomIdInput.value;
+        if (!roomId) return;
+        const formData = new FormData(setSpeakerPositionsForm);
+        const data = Object.fromEntries(formData.entries());
+        delete data.room_id;
+        speakerModalCache.set(roomId, data);
+    });
+
+    setSpeakerPositionsForm.addEventListener('submit', (event) => {
+        event.preventDefault();
+        const formData = new FormData(setSpeakerPositionsForm);
+        const roomId = formData.get('room_id');
+        const data = {};
+
+        ['speaker_1', 'speaker_2'].forEach(speakerKey => {
+            const placementType = formData.get(`${speakerKey}_placement_type`);
+            data[speakerKey] = { placement_type: placementType };
+
+            if (placementType === 'absolute') {
+                data[speakerKey].x = formData.get(`${speakerKey}_x`);
+                data[speakerKey].y = formData.get(`${speakerKey}_y`);
+                data[speakerKey].z = formData.get(`${speakerKey}_z`);
+            } else {
+                data[speakerKey].furniture_name = formData.get(`${speakerKey}_furniture_name`);
+                data[speakerKey].side = formData.get(`${speakerKey}_side`);
+                data[speakerKey].max_distance = formData.get(`${speakerKey}_max_distance`);
+            }
+        });
+
+        fetch(`/api/rooms/${roomId}/speaker-positions`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data),
+        })
+        .then(response => {
+            if (!response.ok) return response.json().then(err => { throw new Error(err.error) });
+            return response.json();
+        })
+        .then(() => {
+            closeSpeakerPositionsModal();
+            speakerModalCache.delete(roomId);
+            fetchRooms();
+        })
+        .catch(error => {
+            console.error('Error setting speaker positions:', error);
+            alert(`Error setting speaker positions: ${error.message}`);
+        });
+    });
+
+
     // --- Mic Position Modal Logic ---
     const setMicPositionModal = document.getElementById('set-mic-position-modal');
     const closeMicModalBtn = document.getElementById('close-mic-modal-btn');
@@ -304,6 +494,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 roomsList.innerHTML = '';
                 audioRoomSelect.innerHTML = '<option value="">Select a room</option>';
                 
+                roomsCache.clear();
+
                 const availableRoomsHeader = document.getElementById('available-rooms-header');
                 if (availableRoomsHeader) {
                     availableRoomsHeader.textContent = `Available Rooms (${rooms.length})`;
@@ -314,6 +506,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     return;
                 }
                 rooms.forEach(room => {
+                    roomsCache.set(room.id, room);
                     const roomDiv = document.createElement('div');
                     roomDiv.className = 'bg-gray-700 p-4 rounded-md';
 
@@ -321,17 +514,19 @@ document.addEventListener('DOMContentLoaded', () => {
                     roomHeader.className = 'font-bold cursor-pointer flex justify-between items-center';
                     roomHeader.innerHTML = `
                         <span>${room.name}</span>
-                        <div>
-                            <button class="set-mic-btn text-cyan-400 hover:text-cyan-600 text-xs mr-2" data-id="${room.id}" data-name="${room.name}" data-mic-position="${room.mic_position}">Set Mic</button>
-                            <button class="add-furniture-btn text-blue-400 hover:text-blue-600 text-xs mr-2" data-id="${room.id}" data-name="${room.name}">+ Furniture</button>
-                            <button class="delete-room-btn text-red-500 hover:text-red-700 text-xs" data-id="${room.id}">Delete</button>
+                        <div class="flex items-center space-x-2">
+                            <button title="Speakers" class="set-speakers-btn text-yellow-400 hover:text-yellow-600 p-2" data-id="${room.id}"><i class="fas fa-users pointer-events-none"></i></button>
+                            <button title="Mic" class="set-mic-btn text-cyan-400 hover:text-cyan-600 p-2" data-id="${room.id}" data-name="${room.name}" data-mic-position="${room.mic_position}"><i class="fas fa-microphone pointer-events-none"></i></button>
+                            <button title="+ Furniture" class="add-furniture-btn text-blue-400 hover:text-blue-600 p-2" data-id="${room.id}" data-name="${room.name}"><i class="fas fa-plus pointer-events-none"></i></button>
+                            <button title="Delete" class="delete-room-btn text-red-500 hover:text-red-700 p-2" data-id="${room.id}"><i class="fas fa-trash pointer-events-none"></i></button>
                         </div>
                     `;
 
                     const roomContent = document.createElement('div');
                     roomContent.className = 'collapsible-content'; // Initially expanded
+                    const timestamp = new Date().getTime(); // Cache-busting timestamp
                     roomContent.innerHTML = `
-                        <img src="/api/rooms/${room.id}/image" alt="Room layout for ${room.name}" class="my-2 rounded-md cursor-zoom-in">
+                        <img src="/api/rooms/${room.id}/image?t=${timestamp}" alt="Room layout for ${room.name}" class="my-2 rounded-md cursor-zoom-in">
                         <details class="mt-2 text-xs">
                             <summary class="cursor-pointer">Details</summary>
                             <pre class="mt-2 p-2 bg-gray-800 rounded text-gray-300 text-xs">${JSON.stringify(room, null, 2)}</pre>
@@ -339,8 +534,19 @@ document.addEventListener('DOMContentLoaded', () => {
                     `;
 
                     roomContent.querySelector('img').addEventListener('click', (e) => {
-                        const highResUrl = `${e.target.src}?width=1024&height=1024`;
+                        const baseUrl = e.target.src.split('?')[0];
+                        const newTimestamp = new Date().getTime();
+                        const highResUrl = `${baseUrl}?width=1024&height=1024&t=${newTimestamp}`;
                         openRoomImageModal(highResUrl);
+                    });
+
+                    roomHeader.querySelector('.set-speakers-btn').addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        const roomId = e.target.getAttribute('data-id');
+                        const room = roomsCache.get(roomId);
+                        if (room) {
+                            openSpeakerPositionsModal(room);
+                        }
                     });
 
                     roomHeader.querySelector('.set-mic-btn').addEventListener('click', (e) => {
@@ -365,6 +571,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             fetch(`/api/rooms/${roomId}`, { method: 'DELETE' })
                                 .then(response => {
                                     if (!response.ok) throw new Error('Failed to delete room');
+                                    speakerModalCache.delete(roomId);
                                     fetchRooms(); // Refresh the list
                                 })
                                 .catch(error => alert(`Error: ${error.message}`));
