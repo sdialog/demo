@@ -32,6 +32,15 @@ document.addEventListener('DOMContentLoaded', () => {
     const awsRegion = document.getElementById('aws-region');
     const awsBearerToken = document.getElementById('aws-bearer-token');
 
+    // Audio Gen Config elements
+    const backgroundEffect = document.getElementById('background-effect');
+    const foregroundEffect = document.getElementById('foreground-effect');
+    const foregroundEffectPosition = document.getElementById('foreground-effect-position');
+    const sourceVolumeRoom = document.getElementById('source-volume-room');
+    const sourceVolumeBackground = document.getElementById('source-volume-background');
+    const rayTracing = document.getElementById('ray-tracing');
+    const airAbsorption = document.getElementById('air-absorption');
+
     // --- Modal Logic ---
     settingsBtn.addEventListener('click', () => {
         settingsModal.classList.remove('hidden');
@@ -420,6 +429,28 @@ document.addEventListener('DOMContentLoaded', () => {
     awsBearerToken.addEventListener('keyup', saveLlmConfig);
 
 
+    // --- Audio Config Logic ---
+    const saveAudioConfig = () => {
+        const config = {
+            ray_tracing: rayTracing.checked,
+            air_absorption: airAbsorption.checked,
+        };
+        localStorage.setItem('audioConfig', JSON.stringify(config));
+    };
+
+    const loadAudioConfig = () => {
+        const savedConfig = localStorage.getItem('audioConfig');
+        if (savedConfig) {
+            const config = JSON.parse(savedConfig);
+            rayTracing.checked = config.ray_tracing !== false; // default to true
+            airAbsorption.checked = config.air_absorption !== false; // default to true
+        }
+    };
+
+    rayTracing.addEventListener('change', saveAudioConfig);
+    airAbsorption.addEventListener('change', saveAudioConfig);
+
+
     const fetchPersonas = () => {
         fetch('/api/personas')
             .then(response => response.json())
@@ -777,6 +808,19 @@ document.addEventListener('DOMContentLoaded', () => {
                 do_step_2: true,
                 do_step_3: true,
                 room_name: roomName,
+                audio_config: {
+                    background_effect: backgroundEffect.value,
+                    foreground_effect: foregroundEffect.value,
+                    foreground_effect_position: foregroundEffectPosition.value,
+                    source_volumes: {
+                        ROOM: sourceVolumeRoom.value,
+                        BACKGROUND: sourceVolumeBackground.value
+                    },
+                    kwargs_pyroom: {
+                        ray_tracing: rayTracing.checked,
+                        air_absorption: airAbsorption.checked
+                    }
+                }
             }),
         })
         .then(response => {
@@ -835,4 +879,5 @@ document.addEventListener('DOMContentLoaded', () => {
     fetchPersonaVoiceAssignments();
     fetchRooms();
     loadLlmConfig();
+    loadAudioConfig();
 });

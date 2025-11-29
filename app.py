@@ -12,12 +12,12 @@ from sdialog import Context  # noqa: E402
 from sdialog import config
 from sdialog.agents import Agent  # noqa: E402
 from sdialog.personas import Persona  # noqa: E402
-from sdialog.audio.room import Room, Dimensions3D, Position3D, MicrophonePosition  # noqa: E422
+from sdialog.audio.room import Room, Dimensions3D, Position3D, MicrophonePosition, RoomPosition  # noqa: E422
 from sdialog.audio.pipeline import to_audio  # noqa: E402
 from sdialog.audio.tts import KokoroTTS
 from sdialog.audio.voice_database import HuggingfaceVoiceDatabase  # noqa: E402
 from sdialog.generators.base import BaseAttributeModelGenerator
-from sdialog.audio.utils import Role, Furniture, RGBAColor, SpeakerSide  # noqa: E402
+from sdialog.audio.utils import Role, Furniture, RGBAColor, SpeakerSide, SourceType, SourceVolume  # noqa: E402
 from sdialog.audio.room_generator import BasicRoomGenerator
 from sdialog.audio.jsalt import MedicalRoomGenerator
 
@@ -611,6 +611,7 @@ def generate_audio(dialog_id):
     do_step_2 = data.get('do_step_2', False)
     do_step_3 = data.get('do_step_3', False)
     room_name = data.get('room_name')
+    audio_config = data.get('audio_config', {})
 
     dialog_obj = next((d for d in dialogs if d.id == dialog_id), None)
     if not dialog_obj:
@@ -627,6 +628,29 @@ def generate_audio(dialog_id):
     dialog_audio_dir = os.path.join(APP_ROOT, 'static', 'audio', dialog_id)
     os.makedirs(dialog_audio_dir, exist_ok=True)
 
+    # Process audio_config
+    background_effect = audio_config.get('background_effect')
+    foreground_effect = audio_config.get('foreground_effect')
+    kwargs_pyroom = audio_config.get('kwargs_pyroom')
+
+    foreground_effect_position = None
+    if audio_config.get('foreground_effect_position'):
+        try:
+            foreground_effect_position = RoomPosition[audio_config['foreground_effect_position']]
+        except KeyError:
+            error_msg = f"Invalid foreground_effect_position: {audio_config['foreground_effect_position']}"
+            return jsonify({'error': error_msg}), 400
+
+    source_volumes = None
+    if audio_config.get('source_volumes'):
+        try:
+            source_volumes = {
+                SourceType[key]: SourceVolume[value]
+                for key, value in audio_config['source_volumes'].items()
+            }
+        except KeyError as e:
+            return jsonify({'error': f"Invalid source volume key or value: {e}"}), 400
+
     perform_acoustics = do_step_2 or do_step_3
     audio_dialog = to_audio(
         dialog=dialog_obj,
@@ -635,7 +659,12 @@ def generate_audio(dialog_id):
         tts_engine=tts_engine,
         voice_database=voice_db,
         room=room_obj if perform_acoustics else None,
-        override_tts_audio=do_step_1
+        override_tts_audio=do_step_1,
+        background_effect=background_effect,
+        foreground_effect=foreground_effect,
+        foreground_effect_position=foreground_effect_position,
+        kwargs_pyroom=kwargs_pyroom,
+        source_volumes=source_volumes
     )
 
     # This returns the paths to the generated files
